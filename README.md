@@ -1,13 +1,20 @@
 # PyTigris
 
-_PyTigris__ is a python package that allows users to directly download and use TIGER/Line shapefiles (<https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html>) from the US Census Bureau.  
+__PyTigris__ is a python package that allows users to directly download and use TIGER/Line shapefiles (<https://www.census.gov/geographies/mapping-files/time-series/geo/tiger-line-file.html>) from the US Census Bureau.  
 
 It is inspired by the excellent [tigris](https://github.com/walkerke/tigris) package for R, by [Kyle Walker](https://github.com/walkerke).
 
-To install the package: 
+To install the package (COMING SOON): 
 
 ```
 pip install pytigris
+```
+
+Or you can install it from source:
+```
+git clone https://github.com/ITDebicki/PyTigris
+cd PyTigris
+pip install .
 ```
 
 ## Usage:
