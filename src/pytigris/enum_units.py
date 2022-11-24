@@ -5,7 +5,7 @@ from typing import Optional, Union, Iterable
 
 
 def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] = None, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
-    """Download shapefile for all states into R.
+    """Download shapefile for all states.
     
     States and Equivalent Entities are the primary governmental divisions of the
     United States.  In addition to the 50 states, the Census Bureau treats the
@@ -16,7 +16,7 @@ def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] =
     Args:
         cb (bool, optional): If cb (cartographic boundaries) is set to True, download a generalized (1:500k) states file. Defaults to False.
         resolution (str, optional): The resolution of the cartographic boundary file (if cb == True). Options are: '500k', '5m', '20m'. Defaults to '500k'.
-        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (current year).
+        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
         refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
         progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
         use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
@@ -83,7 +83,7 @@ Description from the US Census Bureau (see link for source):
         states (Optional[Union[str, Iterable[str]]], optional): The two-digit FIPS code (string) of the state you want, or a list of codes if you want multiple states. Can also be state name or state abbreviation. Defaults to None (All states).
         cb (bool, optional): If cb (cartographic boundaries) is set to True, download a generalized (1:500k) counties file. Defaults to False.
         resolution (str, optional): The resolution of the cartographic boundary file (if cb == True). Options are: '500k', '5m', '20m'. Defaults to '500k'.
-        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (current year).
+        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
         refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
         progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
         use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
@@ -93,7 +93,7 @@ Description from the US Census Bureau (see link for source):
         ValueError: If cb (cartographic boundaries) is False and year is 1990
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame of state boundaries from the given year for the given state(s).
+        gpd.GeoDataFrame: GeoDataFrame of county boundaries from the given year for the given state(s).
     """
     if resolution not in {'500k', '5m', '20m'}:
         raise ValueError(f"Invalid resolution value: '{resolution}'. Should be one of: '500k', '5m', '20m'")
@@ -126,8 +126,58 @@ Description from the US Census Bureau (see link for source):
 
     
 def get_tracts(state:Optional[str] = None, counties:Optional[Union[str, Iterable[str]]] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
-    resolution = '500k'
+    """Download a Census tracts shapefile, and optionally subset by county
 
+Description from the US Census Bureau (see link for source):
+        Census Tracts are small, relatively permanent statistical subdivisions of
+        a county or equivalent entity that are updated by local participants prior
+        to each decennial census as part of the Census Bureau's Participant
+        Statistical Areas Program. The Census Bureau delineates census tracts in
+        situations where no local participant existed or where state, local, or
+        tribal governments declined to participate. The primary purpose of census
+        tracts is to provide a stable set of geographic units for the presentation
+        of statistical data.
+
+        Census tracts generally have a population size between 1,200 and 8,000 people,
+        with an optimum size of 4,000 people. A census tract usually covers a
+        contiguous area; however, the spatial size of census tracts varies widely
+        depending on the density of settlement.  Census tract boundaries are
+        delineated with the intention of being maintained over a long time so that
+        statistical comparisons can be made from census to census. Census tracts
+        occasionally are split due to population growth or merged as a result of
+        substantial population decline.
+
+        Census tract boundaries generally follow visible and identifiable features.
+        They may follow nonvisible legal boundaries, such as minor civil division
+        (MCD) or incorporated place boundaries in some states and situations, to
+        allow for census-tract-to-governmental-unit relationships where the
+        governmental boundaries tend to remain unchanged between censuses.  State and
+        county boundaries always are census tract boundaries in the standard census
+        geographic hierarchy.
+
+    Args:
+        state (Optional[str], optional): The two-digit FIPS code (string) of the state you want.
+                                        Can also be state name or state abbreviation.
+                                        When None and combined with cb = True, a national dataset of Census tracts will be
+                                        returned for years 2019 and later.
+                                        Defaults to None.
+        counties (Optional[Union[str, Iterable[str]]], optional): The three-digit FIPS code (string) of the county you'd like to subset for,
+                                                                    or an iterable of FIPS codes if you desire multiple counties.
+                                                                    Can also be a county name or iterable of names. Defaults to None.
+        year (Optional[int], optional): The year for which to fetch the boundaries.
+                                        Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
+        cb (bool, optional): If cb (cartographic boundaries) is set to True,
+                             download a generalized (1:500k) tracts file. Defaults to False.
+        refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
+        progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
+        use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
+
+    Raises:
+        ValueError: If invalid year combination, or state or county is invalid.
+
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame of tract boundaries from the given year for the given state(s) and counties.
+    """
     if year is None:
         year = (datetime.date.today() - datetime.timedelta(days = 366)).year
         # Log retrieving date if not specified
@@ -142,7 +192,7 @@ def get_tracts(state:Optional[str] = None, counties:Optional[Union[str, Iterable
     else:
         state = validate_state(state)
 
-    url = construct_url(year, 'tract', cb, resolution, state)
+    url = construct_url(year, 'tract', cb, '500k', state)
 
     df = load_tiger(url, refresh, progress_bar, use_cache)
 
