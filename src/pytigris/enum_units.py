@@ -16,7 +16,7 @@ def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] =
     Args:
         cb (bool, optional): If cb (cartographic boundaries) is set to True, download a generalized (1:500k) states file. Defaults to False.
         resolution (str, optional): The resolution of the cartographic boundary file (if cb == True). Options are: '500k', '5m', '20m'. Defaults to '500k'.
-        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
+        year (Optional[int], optional): The year for which to fetch the boundaries. Defaults to None (year before current).
         refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
         progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
         use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
@@ -26,7 +26,7 @@ def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] =
         ValueError: If cb (cartographic boundaries) is False and year is 1990
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame of state boundaries from the given year
+        geopandas.GeoDataFrame: GeoDataFrame of state boundaries from the given year
     """
     if resolution not in {'500k', '5m', '20m'}:
         raise ValueError(f"Invalid resolution value: '{resolution}'. Should be one of: '500k', '5m', '20m'")
@@ -78,7 +78,7 @@ Description from the US Census Bureau (see link for source):
         states (Optional[Union[str, Iterable[str]]], optional): The two-digit FIPS code (string) of the state you want, or a list of codes if you want multiple states. Can also be state name or state abbreviation. Defaults to None (All states).
         cb (bool, optional): If cb (cartographic boundaries) is set to True, download a generalized (1:500k) counties file. Defaults to False.
         resolution (str, optional): The resolution of the cartographic boundary file (if cb == True). Options are: '500k', '5m', '20m'. Defaults to '500k'.
-        year (Optional[int], optional): The year for which to fetch the boundaries. Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
+        year (Optional[int], optional): The year for which to fetch the boundaries. Defaults to None (year before current).
         refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
         progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
         use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
@@ -88,7 +88,7 @@ Description from the US Census Bureau (see link for source):
         ValueError: If cb (cartographic boundaries) is False and year is 1990
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame of county boundaries from the given year for the given state(s).
+        geopandas.GeoDataFrame: GeoDataFrame of county boundaries from the given year for the given state(s).
     """
     if resolution not in {'500k', '5m', '20m'}:
         raise ValueError(f"Invalid resolution value: '{resolution}'. Should be one of: '500k', '5m', '20m'")
@@ -155,8 +155,7 @@ Description from the US Census Bureau (see link for source):
         counties (Optional[Union[str, Iterable[str]]], optional): The three-digit FIPS code (string) of the county you'd like to subset for,
                                                                     or an iterable of FIPS codes if you desire multiple counties.
                                                                     Can also be a county name or iterable of names. Defaults to None.
-        year (Optional[int], optional): The year for which to fetch the boundaries.
-                                        Pre 2010, only 1990, 2000 and 2010 are available. Defaults to None (year before current).
+        year (Optional[int], optional): The year for which to fetch the boundaries. Defaults to None (year before current).
         cb (bool, optional): If cb (cartographic boundaries) is set to True,
                              download a generalized (1:500k) tracts file. Defaults to False.
         refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
@@ -167,7 +166,7 @@ Description from the US Census Bureau (see link for source):
         ValueError: If invalid year combination, or state or county is invalid.
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame of tract boundaries from the given year for the given state(s) and counties.
+        geopandas.GeoDataFrame: GeoDataFrame of tract boundaries from the given year for the given state and counties.
     """
     year = standardize_year(year)
 
@@ -204,7 +203,44 @@ Description from the US Census Bureau (see link for source):
     return df
     
 def get_school_districts(state:Optional[str] = None, dtype:Union[str, SchoolDistrict] = SchoolDistrict.UNIFIED, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
-    
+    """Download a school district shapefile into R
+
+        From the US Census Bureau (see link for source):
+        School Districts are single-purpose administrative units within which local officials provide public
+        educational services for the area's residents. The Census Bureau obtains school district boundaries,
+        names, local education agency codes, grade ranges, and school district levels biennially from state
+        education officials. The Census Bureau collects this information for the primary purpose of providing the
+        U.S. Department of Education with annual estimates of the number of children in poverty within each
+        school district, county, and state. This information serves as the basis for the Department of Education to
+        determine the annual allocation of Title I funding to states and school districts.
+
+        The Census Bureau creates pseudo-unified school districts for areas in which unified school districts do
+        not exist.  Additionally, elementary and secondary school districts do not exist in all states.
+        Please see the link for more information on how the Census Bureau creates the school district shapefiles.
+
+    Args:
+        state (Optional[str], optional): The two-digit FIPS code (string) of the state you want.
+                                        Can also be state name or state abbreviation.
+                                        When None and combined with cb = True, a national dataset of Census tracts will be
+                                        returned for years 2019 and later.
+                                        Defaults to None.
+        dtype (Union[str, SchoolDistrict], optional): The type of school district to download.
+                                                    Options are: 'unified', 'elementary', 'secondary'.
+                                                    Defaults to SchoolDistrict.UNIFIED
+        year (Optional[int], optional): The year for which to fetch the boundaries. Defaults to None (year before current).
+        cb (bool, optional): If cb (cartographic boundaries) is set to True,
+                             download a generalized (1:500k) tracts file. Defaults to False.
+        refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
+        progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
+        use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
+
+
+    Raises:
+        ValueError: If invalid year combination, or state is invalid.
+
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame of school district boundaries from the given year for the given state.
+    """
     year = standardize_year(year)
 
     if state is None:
@@ -227,7 +263,52 @@ def get_school_districts(state:Optional[str] = None, dtype:Union[str, SchoolDist
 
     return df
     
-def get_block_groups(state:Optional[str] = None, counties: Optional[Union[Iterable[str], str]] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False):
+def get_block_groups(state:Optional[str] = None, counties: Optional[Union[Iterable[str], str]] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
+    """Download a Census block groups shapefile, and optionally subset by county
+
+        Description from the US Census Bureau (see link for source):Standard block groups are clusters of
+        blocks within the same census tract that have the same first digit of
+        their 4-character census block number. For example, blocks 3001, 3002, 3003..., 3999 in census tract
+        1210.02 belong to Block Group 3. Due to boundary and feature changes that occur throughout the
+        decade, current block groups do not always maintain these same block number to block group
+        relationships. For example, block 3001 might move due to a census tract boundary change but the block
+        number will not change, even if it does not still fall in block group 3. However, the GEOID for that block,
+        identifying block group 3, would remain the same in the attribute information in the TIGER/Line Shapefiles
+        because block GEOIDs are always built using the decennial geographic codes.
+
+        Block groups delineated for the 2010 Census generally contain between 600 and 3,000 people. Most
+        block groups were delineated by local participants in the Census Bureau's Participant Statistical Areas
+        Program (PSAP). The Census Bureau delineated block groups only where a local or tribal government
+        declined to participate or where the Census Bureau could not identify a potential local participant.
+
+        A block group usually covers a contiguous area. Each census tract contains at least one block group and
+        block groups are uniquely numbered within census tract. Within the standard census geographic
+        hierarchy, block groups never cross county or census tract boundaries, but may cross the boundaries of
+        county subdivisions, places, urban areas, voting districts, congressional districts, and American Indian,
+        Alaska Native, and Native Hawaiian areas.
+
+    Args:
+        state (Optional[str], optional): The two-digit FIPS code (string) of the state you want.
+                                        Can also be state name or state abbreviation.
+                                        When None and combined with cb = True, a national dataset of Census tracts will be
+                                        returned for years 2019 and later.
+                                        Defaults to None.
+        counties (Optional[Union[str, Iterable[str]]], optional): The three-digit FIPS code (string) of the county you'd like to subset for,
+                                                                    or an iterable of FIPS codes if you desire multiple counties.
+                                                                    Can also be a county name or iterable of names. Defaults to None.
+        year (Optional[int], optional): The year for which to fetch the boundaries. Defaults to None (year before current).
+        cb (bool, optional): If cb (cartographic boundaries) is set to True,
+                             download a generalized (1:500k) tracts file. Defaults to False.
+        refresh (bool, optional): If to refresh the cached file (if use_cache = True). Defaults to False.
+        progress_bar (bool, optional): If to display the progress bar for download. Defaults to True.
+        use_cache (bool, optional): If to utilise the cache for the downloaded zip file. Defaults to False.
+
+    Raises:
+        ValueError: If invalid year combination, or state or county is invalid.
+
+    Returns:
+        geopandas.GeoDataFrame: GeoDataFrame of block group boundaries from the given year for the given state and counties.
+    """
     year = standardize_year(year)
 
     if state is None:
