@@ -42,7 +42,7 @@ class CacheTests(unittest.TestCase):
         end_2020_cached = time.time() - start
 
         start = time.time()
-        df_2019_cached = pytigris.get_states(year = 2019, use_cache = True, refresh = True)
+        df_2019_cached = pytigris.get_states(year = 2019, use_cache = True)
         end_2019_cached = time.time() - start
 
         with self.subTest():

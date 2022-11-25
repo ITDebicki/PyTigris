@@ -39,38 +39,4 @@ class CountyTests(unittest.TestCase):
         for year in [1995, 2002, 2005, 2012]:
             with self.subTest(f"Year = {year}"):
                 with self.assertRaises(ValueError):
-                    pytigris.get_counties(year = year)
-
-    def test_validate_state_fips_ak(self):
-        self.assertEqual(pytigris.util.validate_state('01'), '01', "State FIPS validation failed for AL (FIPS value passed)")
-    
-    def test_validate_state_name_lower(self):
-        self.assertEqual(pytigris.util.validate_state('alaska'), '02', "State FIPS validation failed for AK (Name)")
-
-    def test_validate_state_name_camel(self):
-        self.assertEqual(pytigris.util.validate_state('Oregon'), '41', "State FIPS validation failed for Oregon (Name)")
-
-    def test_validate_state_name_lower_with_space(self):
-        self.assertEqual(pytigris.util.validate_state('district of columbia'), '11', "State FIPS validation failed for DC (Name)")
-
-    def test_validate_state_name_upper(self):
-        self.assertEqual(pytigris.util.validate_state('WYOMING'), '56', "State FIPS validation failed for WY (Upper case name passed)")
-
-    def test_validate_state_abb_upper(self):
-        self.assertEqual(pytigris.util.validate_state('AK'), '02', "State FIPS validation failed for AK (Upper case abbreviation passed)")
-
-    def test_validate_state_abb_lower(self):
-        self.assertEqual(pytigris.util.validate_state('wy'), '56', "State FIPS validation failed for WY (Lower case abbreviation passed)")
-
-    def test_valildate_state_invalid_fips(self):
-        with self.assertRaises(ValueError):
-            pytigris.util.validate_state('5')
-        
-    def test_valildate_state_invalid_name(self):
-        with self.assertRaises(ValueError):
-            pytigris.util.validate_state('Saskatchewan')
-    
-    def test_valildate_state_invalid_abb(self):
-        with self.assertRaises(ValueError):
-            pytigris.util.validate_state('SA')
-
+                    pytigris.get_counties(year = year, cb = True)

@@ -27,5 +27,5 @@ class StateTests(unittest.TestCase):
         for year in [1995, 2002, 2005, 2012]:
             with self.subTest(f"Year = {year}"):
                 with self.assertRaises(ValueError):
-                    pytigris.get_states(year = year)
+                    pytigris.get_states(year = year, cb = True)
         

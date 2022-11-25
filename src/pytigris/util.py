@@ -1,7 +1,7 @@
 import requests
 import os
 import tempfile
-from tqdm.auto import tqdm
+from tqdm import tqdm
 import shutil
 import functools
 from pathlib import Path
@@ -10,6 +10,8 @@ import functools
 import pandas as pd
 import importlib
 from typing import Optional
+from .constants import SUMMARY_LEVEL_CODES, logger
+import datetime
 
 CACHE_PATH = Path('~/.pyTigris_cache/').expanduser()
 
@@ -20,14 +22,11 @@ def construct_url(year, query_type, cb, resolution, state = 'us'):
     url = 'https://www2.census.gov/geo/tiger/'
     if cb:
         if year in {1990, 2000}:
-            v = '99'
-            if query_type == 'tract':
-                v = state
+            v = state if state != 'us' else '99'
             lastTwoDigits = str(year)[-2:]
             url += f'PREVGENZ/{query_type_abb}/{query_type_abb}{lastTwoDigits}shp/{query_type_abb}{v}_d{lastTwoDigits}_shp.zip'
         elif year == 2010:
-            numberDict = {'state': '040', 'county': '050', 'tract': '140'}
-            url += f'GENZ2010/gz_2010_{state}_{numberDict[query_type]}_00_{resolution}.zip'
+            url += f'GENZ2010/gz_2010_{state}_{SUMMARY_LEVEL_CODES[query_type]}_00_{resolution}.zip'
         elif year == 2013:
             url += f'GENZ{year}/cb_{year}_{state}_{query_type}_{resolution}.zip'
         elif year == 2012:
@@ -60,6 +59,13 @@ def construct_url(year, query_type, cb, resolution, state = 'us'):
             raise ValueError(f'Data for `cb = False` is only available for the years: 2000 and, 2008 onwards. Year specified: {year}')
     
     return url
+
+def standardize_year(year:Optional[int]) -> int:
+    if year is None:
+        year = (datetime.date.today() - datetime.timedelta(days = 366)).year
+        # Log retrieving date if not specified
+        logger.info(f"Retrieving data for the year: {year}")
+    return year
 
 def get_state_name(state_fips):
     table = get_state_fips_table()

@@ -1,8 +1,8 @@
 import datetime
-from .util import *
+from .util import standardize_year, construct_url, load_tiger, validate_county, validate_state
 import geopandas as gpd
 from typing import Optional, Union, Iterable
-
+from .constants import SchoolDistrict
 
 def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] = None, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
     """Download shapefile for all states.
@@ -31,12 +31,7 @@ def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] =
     if resolution not in {'500k', '5m', '20m'}:
         raise ValueError(f"Invalid resolution value: '{resolution}'. Should be one of: '500k', '5m', '20m'")
     
-    if year is None:
-        # Be safe and use previous year (use leap year num days)
-        year = (datetime.date.today() - datetime.timedelta(days = 366)).year
-        # Log retrieving date if not specified
-        if progress_bar:
-            print(f"Retrieving data for the year: {year}")
+    year = standardize_year(year)
     
     url = construct_url(year, 'state', cb, resolution)
 
@@ -103,11 +98,7 @@ Description from the US Census Bureau (see link for source):
             states = [states]
         states = [validate_state(state) for state in states]
     
-    if year is None:
-        year = (datetime.date.today() - datetime.timedelta(days = 366)).year
-        # Log retrieving date if not specified
-        if progress_bar:
-            print(f"Retrieving data for the year: {year}")
+    year = standardize_year(year)
     
     url = construct_url(year, 'county', cb, resolution)
     
@@ -178,11 +169,7 @@ Description from the US Census Bureau (see link for source):
     Returns:
         gpd.GeoDataFrame: GeoDataFrame of tract boundaries from the given year for the given state(s) and counties.
     """
-    if year is None:
-        year = (datetime.date.today() - datetime.timedelta(days = 366)).year
-        # Log retrieving date if not specified
-        if progress_bar:
-            print(f"Retrieving data for the year: {year}")
+    year = standardize_year(year)
 
     if state is None:
         if year > 2018 and cb:
@@ -192,15 +179,16 @@ Description from the US Census Bureau (see link for source):
     else:
         state = validate_state(state)
 
-    url = construct_url(year, 'tract', cb, '500k', state)
-
-    df = load_tiger(url, refresh, progress_bar, use_cache)
-
     if counties is not None:
         if isinstance(counties, str):
             counties = [counties]
         counties = {validate_county(state, county) for county in counties}
 
+    url = construct_url(year, 'tract', cb, '500k', state)
+
+    df = load_tiger(url, refresh, progress_bar, use_cache)
+
+    if counties is not None:
         df = df[df["COUNTYFP"].isin(counties)]
 
     if cb and year in {1990, 2000}:
@@ -215,6 +203,63 @@ Description from the US Census Bureau (see link for source):
 
     return df
     
+def get_school_districts(state:Optional[str] = None, dtype:Union[str, SchoolDistrict] = SchoolDistrict.UNIFIED, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
+    
+    year = standardize_year(year)
+
+    if state is None:
+        if year > 2018 and cb:
+            state = 'us'
+        else:
+            raise ValueError("Must set year > 2018 and cb = True to retrieve school districts for entire US.")
+    else:
+        state = validate_state(state)
+    # TODO: 2011 - 2015 cb = True do not have data
+    if cb and not (year >= 2016 or year == 2010):
+        raise ValueError("School districts for cb = True are only available for years: 2010, and 2016 onwards")
+
+    if isinstance(dtype, str):
+        dtype = SchoolDistrict(dtype)
+
+    url = construct_url(year, dtype.value, cb, '500k', state)
+
+    df = load_tiger(url, refresh, progress_bar, use_cache)
+
+    return df
+    
+def get_block_groups(state:Optional[str] = None, counties: Optional[Union[Iterable[str], str]] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False):
+    year = standardize_year(year)
+
+    if state is None:
+        if year > 2018 and cb:
+            state = 'us'
+        else:
+            raise ValueError("Must set year > 2018 and cb = True to retrieve block groups for entire US.")
+    else:
+        state = validate_state(state)
+
+    if counties is not None:
+        if isinstance(counties, str):
+            counties = [counties]
+        counties = {validate_county(state, county) for county in counties}
+
+    url = construct_url(year, 'bg', cb, '500k', state)
+
+    df = load_tiger(url, refresh, progress_bar, use_cache)
+
+    if counties is not None:
+        df = df[df["COUNTYFP"].isin(counties)]
+
+    if cb and year in {1990, 2000}:
+        if year == 2000:
+            df["TRACT"] = df["TRACT"].str.pad(6, fillchar='0')
+            df["GEOID"] = df.apply(lambda row: row.STATEFP + row.COUNTYFP + row.TRACT + row.BLKGROUP, axis = 1)
+        df = df.dissolve('GEOID', aggfunc = {"AREA": sum, "PERIMETER": sum}).join(
+            df.loc[:, ~df.columns.isin({'geometry', 'AREA', 'PERIMETER'})].groupby('GEOID').first()
+        ).reset_index()
+
+    return df
+
     
 
 
