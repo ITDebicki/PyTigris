@@ -24,10 +24,16 @@ def construct_url(year, query_type, cb, resolution, state = 'us'):
         if year in {1990, 2000}:
             v = state if state != 'us' else '99'
             lastTwoDigits = str(year)[-2:]
-            url += f'PREVGENZ/{query_type_abb}/{query_type_abb}{lastTwoDigits}shp/{query_type_abb}{v}_d{lastTwoDigits}_shp.zip'
+            if query_type == 'zcta':
+                query_type_abb = 'zt'
+                url += f'PREVGENZ/{query_type_abb}/z500shp/{query_type_abb}{v}_d{lastTwoDigits}_shp.zip'
+            else:
+                url += f'PREVGENZ/{query_type_abb}/{query_type_abb}{lastTwoDigits}shp/{query_type_abb}{v}_d{lastTwoDigits}_shp.zip'
         elif year == 2010:
             url += f'GENZ2010/gz_2010_{state}_{SUMMARY_LEVEL_CODES[query_type]}_00_{resolution}.zip'
         elif year == 2013:
+            if query_type == 'zcta':
+                query_type = 'zcta510'
             url += f'GENZ{year}/cb_{year}_{state}_{query_type}_{resolution}.zip'
         elif year == 2012:
             if query_type in {'cd', 'sldl', 'sldu', 'ua'}:
@@ -35,6 +41,8 @@ def construct_url(year, query_type, cb, resolution, state = 'us'):
             else:
                 raise ValueError('Data for 2012 is only defined for queries: cd, sldl, sldu and ua')
         elif year > 2013:
+            if query_type == 'zcta':
+                query_type =  'zcta520' if year >= 2020 else 'zcta510'
             url += f'GENZ{year}/shp/cb_{year}_{state}_{query_type}_{resolution}.zip'
         else:
             raise ValueError(f'Data for `cb = True` is only available for the years: 1990, 2000, 2010, and 2012 onwards. Year specified: {year}')
@@ -45,16 +53,24 @@ def construct_url(year, query_type, cb, resolution, state = 'us'):
         
         if year in {2000, 2010}:
             lastTwoDigits = str(year)[-2:]
+            if query_type == 'zcta':
+                query_type =  'zcta5'
             url += f'TIGER2010/{query_type.upper()}/{year}/tl_2010_{state}_{query_type}{lastTwoDigits}.zip'
         elif year in {2008, 2009}:
-            if query_type in {'state', 'county'} and state == 'us':
+            if query_type == 'zcta':
+                query_type =  'zcta5'
+            if state == 'us':
                 url += f'TIGER{year}/tl_{year}_{state}_{query_type}.zip'
             else:
                 full_state_name = get_state_name(state).upper().replace(" ", "_")
                 query_type = query_type + "00"
                 url += f'TIGER{year}/{state}_{full_state_name}/tl_{year}_{state}_{query_type}.zip'
         elif year > 2010:
-            url += f'TIGER{year}/{query_type.upper()}/tl_{year}_{state}_{query_type}.zip'
+            qury_type_o = query_type
+            if query_type == 'zcta':
+                query_type =  'zcta520' if year >= 2020 else 'zcta510'
+                qury_type_o = 'ZCTA520' if year >= 2020 else 'ZCTA5'
+            url += f'TIGER{year}/{qury_type_o.upper()}/tl_{year}_{state}_{query_type}.zip'
         else:
             raise ValueError(f'Data for `cb = False` is only available for the years: 2000 and, 2008 onwards. Year specified: {year}')
     

@@ -31,6 +31,7 @@ SUMMARY_LEVEL_CODES = {
     'block': '150',
     'bg': '150',
     'place': '160',
+    'zcta': '860',
     'elsd': '950',
     'scsd': '960',
     'unsd': '970'

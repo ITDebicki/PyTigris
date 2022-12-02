@@ -2,7 +2,7 @@ import datetime
 from .util import standardize_year, construct_url, load_tiger, validate_county, validate_state
 import geopandas as gpd
 from typing import Optional, Union, Iterable
-from .constants import SchoolDistrict
+from .constants import SchoolDistrict, logger
 
 def get_states(cb: bool = False, resolution: str = '500k', year: Optional[int] = None, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
     """Download shapefile for all states.
@@ -119,7 +119,7 @@ Description from the US Census Bureau (see link for source):
 def get_tracts(state:Optional[str] = None, counties:Optional[Union[str, Iterable[str]]] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
     """Download a Census tracts shapefile, and optionally subset by county
 
-Description from the US Census Bureau (see link for source):
+        Description from the US Census Bureau (see link for source):
         Census Tracts are small, relatively permanent statistical subdivisions of
         a county or equivalent entity that are updated by local participants prior
         to each decennial census as part of the Census Bureau's Participant
@@ -341,12 +341,34 @@ def get_block_groups(state:Optional[str] = None, counties: Optional[Union[Iterab
 
     return df
 
+def get_zctas(state:Optional[str] = None, starts_with: Optional[str] = None, year: Optional[int] = None, cb: bool = False, refresh : bool = False, progress_bar: bool = True, use_cache: bool = False) -> gpd.GeoDataFrame:
+
+    if year is None:
+        year = 2020
+        # Log retrieving date if not specified
+        logger.info(f"Retrieving data for the year: {year}")
+
+    if year > 2010 and state is not None:
+        raise ValueError("ZCTAs are only available by state for 2000 and 2010")
+    elif year == 2010 and state is not None and cb:
+        raise ValueError("ZCTAs are only available by state for 2010 when cb = False")
+    elif year < 2000:
+        raise ValueError("Zip Code Tabulation Areas are only available beginning with the 2000 Census")
     
+    if state is not None:
+        state = validate_state(state)
+    else:
+        state = 'us'
 
-
-
-
-
-
+    if not use_cache:
+        logger.warning("ZCTAs can take several minutes to download.  To cache the data and avoid re-downloading in calls, set use_cache = True")
     
+    url = construct_url(year, 'zcta', cb, '500k', state = state)
 
+    df = load_tiger(url, refresh, progress_bar, use_cache)
+
+    if starts_with is not None:
+        zctaCol = [col for col in df.columns if col.upper().startswith('ZCTA')][0]
+        df = df[df[zctaCol].str.startswith(starts_with)]
+
+    return df
